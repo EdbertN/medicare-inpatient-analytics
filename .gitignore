@@ -1,0 +1,19 @@
+# Environment & secrets
+.env
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Dataset besar (794MB, melebihi limit GitHub 100MB) — lihat README untuk cara dapatnya
+hospital_inpatient.csv
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# OS junk
+.DS_Store
+__MACOSX/

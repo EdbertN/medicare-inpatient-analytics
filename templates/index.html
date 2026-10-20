@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MediCare Analytics · SPARCS NY 2021</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-sankey@0.12.0/dist/chartjs-chart-sankey.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-treemap@2.3.0/dist/chartjs-chart-treemap.min.js"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+<div class="shell">
+
+  <!-- NAVBAR -->
+  <nav class="topbar">
+    <div class="nav-logo">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="19" cy="19" r="18" stroke="#1DBFAA" stroke-width="1.5" fill="none"/>
+          <rect x="16.5" y="8" width="5" height="22" rx="2.5" fill="#1DBFAA"/>
+          <rect x="8" y="16.5" width="22" height="5" rx="2.5" fill="#1DBFAA"/>
+          <polyline points="4,23 9,23 12,17 15,28 18,19 21,19 24,23 29,23 34,23"
+            stroke="#60A5FA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <div>
+          <div class="logo-mark">MediCare</div>
+          <div class="logo-sub">Analytics System</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-links">
+      <button class="nav-item active" onclick="switchPanel('p1', this)">
+        <i class="fa-solid fa-bed-pulse"></i> Capacity & LOS
+      </button>
+      <button class="nav-item" onclick="switchPanel('p2', this)">
+        <i class="fa-solid fa-file-invoice-dollar"></i> Financial
+      </button>
+      <button class="nav-item" onclick="switchPanel('p3', this)">
+        <i class="fa-solid fa-hand-holding-medical"></i> Accessibility
+      </button>
+      <button class="nav-item" onclick="switchPanel('p4', this)">
+        <i class="fa-solid fa-circle-nodes"></i> Network Analysis
+      </button>
+    </div>
+
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+      <div class="toggle-pill">
+        <div class="toggle-icon sun-icon"><i class="fa-solid fa-sun"></i></div>
+        <div class="toggle-icon moon-icon"><i class="fa-solid fa-moon"></i></div>
+        <div class="toggle-knob"></div>
+      </div>
+    </button>
+  </nav>
+
+  <!-- CONTENT WRAP -->
+  <div class="content-wrap">
+
+    <!-- SIDEBAR (Panel 1 only) -->
+    <aside class="sidebar" id="p1-sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Service Area</div>
+        <select class="sidebar-select" id="filter-area">
+          <option value="all">All Areas</option>
+        </select>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Age Group</div>
+        <select class="sidebar-select" id="filter-age">
+          <option value="all">All Ages</option>
+        </select>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Admission Type</div>
+        <select class="sidebar-select" id="filter-admission">
+          <option value="all">All Types</option>
+        </select>
+      </div>
+      <div class="sidebar-section">
+      <div class="sidebar-label">Disease Category</div>
+        <select class="sidebar-select" id="filter-category">
+          <option value="all">All Categories</option>
+        </select>
+      </div>
+      <button class="sidebar-reset" onclick="resetFilters()">
+        <i class="fa-solid fa-rotate-left"></i> Reset Filters
+      </button>
+      <div class="sidebar-section" id="p1-insight-box" style="margin-top: 24px; padding: 12px; border-radius: 10px; background: rgba(14,165,160,0.06); border: 1px solid rgba(14,165,160,0.2); display:none;">
+        <div class="sidebar-label">Insight & Rekomendasi</div>
+        <div id="p1-insight-text" style="font-size: 12px; color: var(--text); line-height: 1.7;"></div>
+      </div>
+    </aside>
+
+    <!-- SIDEBAR Panel 2 -->
+    <aside class="sidebar" id="p2-sidebar" style="display:none;">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Service Area</div>
+        <select class="sidebar-select" id="p2-filter-area">
+          <option value="all">All Areas</option>
+        </select>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Severity Level</div>
+        <select class="sidebar-select" id="p2-filter-severity">
+          <option value="all">All Severity</option>
+          <option value="Minor">Minor</option>
+          <option value="Moderate">Moderate</option>
+          <option value="Major">Major</option>
+          <option value="Extreme">Extreme</option>
+        </select>
+      </div>
+      <button class="sidebar-reset" onclick="resetP2Filters()">
+        <i class="fa-solid fa-rotate-left"></i> Reset Filters
+      </button>
+    </aside>
+
+    <!-- SIDEBAR Panel 3 -->
+    <aside class="sidebar" id="p3-sidebar" style="display:none;">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Primary Payer</div>
+        <select class="sidebar-select" id="p3-filter-payer">
+          <option value="all">All Payers</option>
+        </select>
+      </div>
+      <button class="sidebar-reset" onclick="resetP3Filters()">
+        <i class="fa-solid fa-rotate-left"></i> Reset Filters
+      </button>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main" id="main-content">
+
+      <!-- STAT CARDS -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">TOTAL PATIENTS</div>
+          <div class="stat-value" id="s-patients">—</div>
+          <div class="stat-note">inpatient discharges recorded</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">HOSPITALS</div>
+          <div class="stat-value" id="s-hospitals">—</div>
+          <div class="stat-note">unique facilities across NY State</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">AVG LENGTH OF STAY</div>
+          <div class="stat-value" id="s-los">—</div>
+          <div class="stat-note">days per admission</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">AVG TOTAL CHARGES</div>
+          <div class="stat-value" id="s-charge">—</div>
+          <div class="stat-note">billed per patient visit</div>
+        </div>
+      </div>
+
+      <!-- PANEL 1 -->
+      <div class="panel active" id="p1">
+
+        <!-- ROW 1: Map full width -->
+        <div class="chart-card p1-full">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Patient Distribution by Service Area</div>
+              <div class="chart-desc">Total inpatient discharges mapped across NY State service areas</div>
+            </div>
+            <span class="chart-badge badge-pg">PostgreSQL</span>
+          </div>
+          <div class="chart-wrap" id="map-wrap">
+            <div class="loading" id="map-loading"><div class="spinner"></div> Loading map...</div>
+            <div id="los-map" style="border-radius:10px; display:none;"></div>
+          </div>
+          <div class="insight">
+            <strong>Insight:</strong> Service areas with the highest patient volume indicate where hospital workload is most concentrated statewide.
+          </div>
+          <div id="county-breakdown" style="display:none; margin-top:18px; padding:16px; border-radius:10px; background:var(--surface2); border:1px solid var(--border);">
+            <div style="font-family:'Poppins',sans-serif; font-weight:600; font-size:14px; margin-bottom:12px; color:var(--text);">
+              County Breakdown — <span id="county-breakdown-area"></span>
+            </div>
+            <div id="county-breakdown-list" style="display:flex; flex-direction:column; gap:6px;"></div>
+          </div>
+        </div>
+
+        <!-- ROW 2: Heatmap (2/3) + LOS Bar (1/3) -->
+        <div class="chart-card p1-wide">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Length of Stay Heatmap</div>
+              <div class="chart-desc">Avg LOS intensity by service area and age group</div>
+            </div>
+            <span class="chart-badge badge-pg">PostgreSQL</span>
+          </div>
+          <div class="chart-wrap">
+            <div class="loading" id="heatmap-loading"><div class="spinner"></div> Loading heatmap...</div>
+            <canvas id="heatmap-chart" style="display:none;"></canvas>
+          </div>
+          <div class="insight">
+            <strong>Insight:</strong> Elderly patients (70+) consistently show the highest LOS intensity across all service areas.
+          </div>
+        </div>
+
+        <div class="chart-card p1-narrow">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Avg LOS per Area</div>
+              <div class="chart-desc">By service area & age group</div>
+            </div>
+            <span class="chart-badge badge-pg">PostgreSQL</span>
+          </div>
+          <div class="filter-row" id="age-filters"></div>
+          <div class="chart-wrap">
+            <div class="loading" id="los-loading"><div class="spinner"></div> Loading data...</div>
+            <canvas id="los-chart" style="display:none"></canvas>
+          </div>
+          <div class="insight">
+            <strong>Insight:</strong> Patients <strong>70 or Older</strong> have the highest LOS across all areas.
+          </div>
+        </div>
+
+        <!-- ROW 3: Admission Flow (1/2) + ED Ratio (1/2) -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Patient Admission Flow</div>
+              <div class="chart-desc">Breakdown of admission type per region</div>
+            </div>
+            <span class="chart-badge badge-pg">PostgreSQL</span>
+          </div>
+          <div class="chart-wrap">
+            <div class="loading" id="admission-loading"><div class="spinner"></div> Loading data...</div>
+            <canvas id="admission-chart" style="display:none;"></canvas>
+            <div id="admission-heatmap" style="display:none; overflow-x:auto;"></div>
+          </div>
+          <div class="insight">
+            <strong>Insight:</strong> High Emergency admission rates signal the need for increased ED nurse-to-patient ratios.
+          </div>
+        </div>
+
+        <div class="chart-card" id="ed-explorer-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">ED Capacity Explorer</div>
+              <div class="chart-desc">Emergency Department entry pressure per service area</div>
+            </div>
+            <span class="chart-badge badge-hybrid">PostgreSQL + MongoDB</span>
+          </div>
+
+          <div class="loading" id="ed-loading"><div class="spinner"></div> Loading data...</div>
+
+          <div id="ed-explorer-body" style="display:none;">
+            <div class="filter-row" id="ed-area-pills"></div>
+
+            <div class="ed-stat-grid">
+              <div class="ed-stat-card" style="--ed-line: #EF4444;">
+                <div class="ed-stat-label">ED ENTRY</div>
+                <div class="ed-stat-value" id="ed-stat-pct">—</div>
+                <div class="ed-stat-note">of admissions via UGD</div>
+              </div>
+              <div class="ed-stat-card" style="--ed-line: #3B82F6;">
+                <div class="ed-stat-label">NON-ED ENTRY</div>
+                <div class="ed-stat-value" id="ed-stat-nonpct">—</div>
+                <div class="ed-stat-note">scheduled / referred</div>
+              </div>
+              <div class="ed-stat-card" style="--ed-line: #EF4444;">
+                <div class="ed-stat-label">ED PATIENTS</div>
+                <div class="ed-stat-value" id="ed-stat-vol">—</div>
+                <div class="ed-stat-note">total via UGD</div>
+              </div>
+              <div class="ed-stat-card" style="--ed-line: #3B82F6;">
+                <div class="ed-stat-label">NON-ED PATIENTS</div>
+                <div class="ed-stat-value" id="ed-stat-nonvol">—</div>
+                <div class="ed-stat-note">total non-UGD</div>
+              </div>
+            </div>
+
+            <div class="insight" id="ed-explorer-insight"></div>
+
+            <div class="ed-rank-header">All Service Areas — Ranked by ED Entry Rate</div>
+            <div id="ed-rank-list"></div>
+          </div>
+        </div>
+
+        <div class="chart-card p1-full">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">ED Entry Rate by Admission Type</div>
+              <div class="chart-desc">Percentage of patients entering via the Emergency Department, broken down by administrative admission category</div>
+            </div>
+            <span class="chart-badge badge-hybrid">PostgreSQL + MongoDB</span>
+          </div>
+          <div class="chart-wrap">
+            <div class="loading" id="ed-by-type-loading"><div class="spinner"></div> Loading data...</div>
+            <canvas id="ed-by-type-chart" style="display:none;"></canvas>
+          </div>
+          <div class="insight" id="ed-by-type-insight">
+            <strong>Insight:</strong> Loading...
+          </div>
+        </div>
+
+        
+        <div style="grid-column: 1 / -1; width: 100%;">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">Bed Capacity Explorer</div>
+                <div class="chart-desc">Interactive occupancy projection & hospital-level requirements by service area</div>
+              </div>
+              <span class="chart-badge badge-pg">PostgreSQL</span>
+            </div>
+            <div id="bed-capacity-explorer" style="padding: 4px 0;"></div>
+          </div>
+        </div>
+          
+
+        <!-- ROW 4: Top Diagnosis + Seasonal dalam 1 card -->
+        <div class="chart-card p1-full">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Top Diagnoses by Service Area</div>
+              <div class="chart-desc">Most dominant CCSR disease categories per region</div>
+            </div>
+            <span class="chart-badge badge-pg">PostgreSQL</span>
+          </div>
+          <div class="filter-row" id="area-filters"></div>
+          <div class="chart-wrap">
+            <div class="loading" id="diagnosis-area-loading"><div class="spinner"></div> Loading data...</div>
+            <canvas id="diagnosis-area-chart" style="display:none;"></canvas>
+          </div>
+          <div class="insight">
+            <strong>Insight:</strong> Identifying dominant diagnoses per region enables targeted physician deployment.
+          </div>
+        </div>
+
+        <div class="chart-card p1-full">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Inpatient Cases by Disease Category</div>
+              <div class="chart-desc">CCSR diagnoses grouped into major disease categories, aggregated statewide — for drug inventory and staffing planning</div>
+            </div>
+            <span class="chart-badge badge-pg">PostgreSQL</span>
+          </div>
+          <div class="chart-wrap" id="seasonal-wrap">
+            <div class="loading" id="seasonal-loading"><div class="spinner"></div> Loading data...</div>
+            <canvas id="seasonal-chart" style="display:none;"></canvas>
+          </div>
+          <div class="insight">
+            <strong>Insight:</strong> Understanding disease category distribution helps hospitals proactively manage drug inventory and allocate specialist staff before surge periods.
+          </div>
+        </div>
+
+      </div>
+      <!-- END PANEL 1 -->
+
+      <!-- PANEL 2 -->
+      <div class="panel" id="p2">
+
+        <!-- Chart 1: Top 15 — full width -->
+        <div class="chart-card p2-full">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Top 15 Diagnoses by Average Total Charges</div>
+              <div class="chart-desc">CCSR disease categories with the highest average charges</div>
+            </div>
+            <span class="chart-badge badge-pg">PostgreSQL</span>
+          </div>
+          <div class="chart-wrap">
+            <div class="loading" id="charge-loading"><div class="spinner"></div> Loading data...</div>
+            <canvas id="charge-chart" style="display:none"></canvas>
+          </div>
+          <div class="insight">
+            <strong>Insight:</strong> The highest-cost diagnoses are generally related to cardiovascular & neonatal procedures — a top priority in hospital budget planning.
+          </div>
+        </div>
+
+        <!-- Chart 2: Top Diagnoses per Area -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Top Diagnoses by Charges per Service Area</div>
+              <div class="chart-desc">Highest average charges per diagnosis across NY service areas</div>
+            </div>
+            <span class="chart-badge badge-pg">PostgreSQL</span>
+          </div>
+          <div class="filter-row" id="charges-area-filters"></div>
+          <div class="chart-wrap">
+            <div class="loading" id="charges-area-loading"><div class="spinner"></div> Loading data...</div>
+            <canvas id="charges-area-chart" style="display:none;"></canvas>
+          </div>
+          <div class="insight">
+            <strong>Insight:</strong> The same diagnosis can have significantly different charges across regions — indicating potential pricing inefficiencies or resource disparities.
+          </div>
+        </div>
+
+        <!-- Chart 4: Scatter -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Case Volume vs Average Charges</div>
+              <div class="chart-desc">Are high-volume diagnoses also the most expensive? Identifying cost outliers.</div>
+            </div>
+            <span class="chart-badge badge-pg">PostgreSQL</span>
+          </div>
+          <div class="chart-wrap">
+            <div class="loading" id="scatter-loading"><div class="spinner"></div> Loading data...</div>
+            <canvas id="scatter-chart" style="display:none;"></canvas>
+          </div>
+          <div class="insight">
+            <strong>Insight:</strong> High-volume diagnoses are not always the most expensive — rare but costly diagnoses represent hidden budget risks for hospitals and insurers.
+          </div>
+          <div id="scatter-outliers" class="outlier-grid"></div>
+        </div>
+
+        <!-- Chart 3: Treemap — full width -->
+        <div class="chart-card p2-full">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Diagnosis Cost Burden — Treemap</div>
+              <div class="chart-desc">Top 20 diagnoses by total charges — size reflects volume, color reflects avg charge</div>
+            </div>
+            <span class="chart-badge badge-pg">PostgreSQL</span>
+          </div>
+          <div class="chart-wrap">
+            <div class="loading" id="treemap-loading"><div class="spinner"></div> Loading data...</div>
+            <canvas id="treemap-chart" style="display:none;"></canvas>
+          </div>
+
+          <div class="treemap-legend">
+            <div class="treemap-legend-item">
+              <span class="treemap-legend-icon size-icon">
+                <span class="size-box size-box-sm"></span>
+                <span class="size-box size-box-lg"></span>
+              </span>
+              <span><strong>Size</strong> = total volume of cases (larger box → more patients with this diagnosis)</span>
+            </div>
+            <div class="treemap-legend-item">
+              <span class="treemap-legend-icon">
+                <span class="color-gradient-bar"></span>
+              </span>
+              <span><strong>Color</strong> = average charge per case (darker teal → higher average cost per patient)</span>
+            </div>
+          </div>
+
+          <div class="insight">
+            <strong>Insight:</strong> Septicemia and COVID-19 dominate total hospital cost burden — critical targets for budget planning and insurance reserve allocation.
+          </div>
+        </div>
+
+        <!-- Chart 5: Severity -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Disease Severity vs Average Charges</div>
+              <div class="chart-desc">Correlation between illness severity level and total charges — detecting potential overcharging</div>
+            </div>
+            <span class="chart-badge badge-hybrid">PostgreSQL + MongoDB</span>
+          </div>
+          <div class="chart-wrap">
+            <div class="loading" id="severity-loading"><div class="spinner"></div> Loading data...</div>
+            <canvas id="severity-chart" style="display:none;"></canvas>
+          </div>
+          <div class="insight">
+            <strong>Insight:</strong> Extreme severity patients are charged ~6x more than Minor — a steep progression that warrants review for potential cost inefficiencies.
+          </div>
+        </div>
+
+        <!-- Chart 7: Mortality -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Risk of Mortality vs Average Charges</div>
+              <div class="chart-desc">Correlation between patient mortality risk and total charges billed</div>
+            </div>
+            <span class="chart-badge badge-hybrid">PostgreSQL + MongoDB</span>
+          </div>
+          <div class="chart-wrap">
+            <div class="loading" id="mortality-loading"><div class="spinner"></div> Loading data...</div>
+            <canvas id="mortality-chart" style="display:none;"></canvas>
+          </div>
+          <div class="insight">
+            <strong>Insight:</strong> Extreme mortality risk patients are billed ~4.5x more than Minor risk — a steep progression that may indicate overcharging in critical care.
+          </div>
+        </div>
+
+        <!-- Chart 6: Procedures — full width -->
+        <div class="chart-card p2-full">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Top Procedures by Average Charges</div>
+              <div class="chart-desc">Most expensive medical procedures — for overcharging detection and budget planning</div>
+            </div>
+            <span class="chart-badge badge-hybrid">PostgreSQL + MongoDB</span>
+          </div>
+          <div class="chart-wrap">
+            <div class="loading" id="procedure-loading"><div class="spinner"></div> Loading data...</div>
+            <canvas id="procedure-chart" style="display:none;"></canvas>
+          </div>
+          <div class="insight">
+            <strong>Insight:</strong> Transplant procedures dominate the highest charges — GI Transplant averages $2.4M per case, indicating extreme financial risk for uninsured patients.
+          </div>
+        </div>
+
+      </div>
+      <!-- END PANEL 2 -->
+
+      <!-- PANEL 3 -->
+      <div class="panel" id="p3">
+
+        <!-- Chart 1: Payer vs Disposition — full width -->
+        <div class="chart-card p3-full">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Patient Disposition per Payment Type</div>
+              <div class="chart-desc">Relationship between payment method and patient care outcomes</div>
+            </div>
+            <span class="chart-badge badge-mongo">MongoDB</span>
+          </div>
+          <div class="chart-wrap">
+            <div class="loading" id="payer-loading"><div class="spinner"></div> Loading data...</div>
+            <canvas id="payer-chart" style="display:none"></canvas>
+          </div>
+          <div class="insight">
+            <strong>Insight:</strong> <strong>Self-Pay</strong> patients show the highest proportion of AMA/Other outcomes — a potential indicator of healthcare access gaps based on economic status.
+          </div>
+        </div>
+
+        <!-- Chart 2: LOS per Payer -->
+        <div class="chart-card p3-full">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Average Length of Stay per Payer</div>
+              <div class="chart-desc">Comparing hospital stay duration across insurance types — detecting care access disparities</div>
+            </div>
+            <span class="chart-badge badge-hybrid">PostgreSQL + MongoDB</span>
+          </div>
+          <div class="chart-wrap" id="los-payer-chart-wrap">
+            <div class="loading" id="los-payer-loading"><div class="spinner"></div> Loading data...</div>
+            <canvas id="los-payer-chart" style="display:none;"></canvas>
+          </div>
+          <div class="insight">
+            <strong>Insight:</strong> Medicare patients have the longest avg LOS (6.9 days) vs Self-Pay (4.6 days) — suggesting uninsured patients may leave earlier due to financial pressure.
+          </div>
+        </div>
+
+        <!-- Chart 3: Payment Coordination -->
+        <div class="chart-card p3-full">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Payment Typology Coordination</div>
+              <div class="chart-desc">Primary vs secondary payer combinations — evaluating insurance coverage coordination</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div id="coordination-toggle-wrapper" style="display:flex;border:1px solid #E2E8F0;border-radius:8px;overflow:hidden;background:#F8FAFC;">
+                <button id="btn-sankey" onclick="setCoordinationMode('sankey')"
+                  style="padding:5px 14px;font-size:12px;font-weight:600;border:none;cursor:pointer;background:#0EA5A0;color:white;border-radius:7px;margin:2px;transition:all .2s;">
+                  Sankey
+                </button>
+                <button id="btn-matrix" onclick="setCoordinationMode('matrix')"
+                  style="padding:5px 14px;font-size:12px;font-weight:500;border:none;cursor:pointer;background:transparent;color:#6B7280;border-radius:7px;margin:2px;transition:all .2s;">
+                  Matrix
+                </button>
+              </div>
+              <span class="chart-badge badge-mongo">MongoDB</span>
+            </div>
+          </div>
+          <div class="chart-wrap" id="coordination-wrap">
+            <div class="loading" id="coordination-loading"><div class="spinner"></div> Loading data...</div>
+            <canvas id="coordination-chart" style="display:none;"></canvas>
+            <div id="coordination-matrix" style="display:none; overflow-x:auto;"></div>
+          </div> 
+        </div>
+
+      </div>
+      <!-- END PANEL 3 -->
+
+      <!-- PANEL 4 -->
+      <div class="panel" id="p4">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Patient Referral Network</div>
+              <div class="chart-desc">Graph analysis of patient flow and referral patterns across NY hospitals</div>
+            </div>
+            <span class="chart-badge badge-neo">Neo4j</span>
+          </div>
+
+          <div style="padding: 40px 0; text-align: center;">
+            <div style="font-size: 48px; margin-bottom: 16px;">
+              <i class="fa-solid fa-circle-nodes" style="color: var(--accent);"></i>
+            </div>
+            <div style="font-family: 'Poppins', sans-serif; font-size: 18px; font-weight: 600; color: var(--text); margin-bottom: 8px;">Graph Analytics — Coming Soon</div>
+            <div style="font-size: 13px; color: var(--muted); max-width: 500px; margin: 0 auto; line-height: 1.7;">
+              Planned integration with <strong>Neo4j Graph Database</strong> for causal and network analysis — handling complex relationships beyond relational and document databases.
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 32px;">
+            <div style="padding: 20px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface2);">
+              <div style="font-size: 24px; margin-bottom: 10px;">
+                <i class="fa-solid fa-hospital" style="color: var(--accent);"></i>
+              </div>
+              <div style="font-family: 'Poppins', sans-serif; font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px;">Patient Referral Network</div>
+              <div style="font-size: 12px; color: var(--muted); line-height: 1.6;">Map patient transfer patterns between NY hospitals — identify referral hubs for specific CCSR diagnoses.</div>
+            </div>
+            <div style="padding: 20px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface2);">
+              <div style="font-size: 24px; margin-bottom: 10px;">
+                <i class="fa-solid fa-diagram-project" style="color: var(--accent2);"></i>
+              </div>
+              <div style="font-family: 'Poppins', sans-serif; font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px;">Clinical Pathway Analysis</div>
+              <div style="font-size: 12px; color: var(--muted); line-height: 1.6;">Map co-occurring CCSR procedures — detect the most efficient treatment sequences based on clinical relationships.</div>
+            </div>
+            <div style="padding: 20px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface2);">
+              <div style="font-size: 24px; margin-bottom: 10px;">
+                <i class="fa-solid fa-object-group" style="color: var(--accent3);"></i>
+              </div>
+              <div style="font-family: 'Poppins', sans-serif; font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px;">Community Detection</div>
+              <div style="font-size: 12px; color: var(--muted); line-height: 1.6;">Cluster hospitals by patient profile similarity and cost characteristics — identify performance groups statewide.</div>
+            </div>
+          </div>
+
+          <div style="margin-top: 32px; padding: 20px; border-radius: 12px; background: rgba(14,165,160,0.06); border: 1px solid rgba(14,165,160,0.2);">
+            <div style="font-family: 'Poppins', sans-serif; font-size: 13px; font-weight: 600; color: var(--accent); margin-bottom: 10px;">Planned Architecture</div>
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace;">
+              <span style="padding: 4px 10px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border);">PostgreSQL</span>
+              <span>+</span>
+              <span style="padding: 4px 10px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border);">MongoDB</span>
+              <span>→</span>
+              <span style="padding: 4px 10px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border);">ETL Pipeline</span>
+              <span>→</span>
+              <span style="padding: 4px 10px; border-radius: 6px; background: rgba(14,165,160,0.12); border: 1px solid rgba(14,165,160,0.3); color: var(--accent);">Neo4j Graph DB</span>
+              <span>→</span>
+              <span style="padding: 4px 10px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border);">Flask API</span>
+              <span>→</span>
+              <span style="padding: 4px 10px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border);">D3.js Force Graph</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+      <!-- END PANEL 4 -->
+
+    </main>
+  </div>
+  <!-- END CONTENT WRAP -->
+
+</div>
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
